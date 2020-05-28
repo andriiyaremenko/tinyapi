@@ -1,0 +1,5 @@
+*.swo
+*.swp
+tags
+tinyapi
+.DS_Store
