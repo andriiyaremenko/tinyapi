@@ -5,22 +5,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"path"
 	"testing"
-
-	"github.com/andriiyaremenko/tinyapi/utils"
 )
 
 func TestEndpoint(t *testing.T) {
-	endpoint := NewEndpoint(func(e Endpoint) {
+	endpoint := NewEndpoint("/", func(e Endpoint) Endpoint {
 		e.Middleware(func(w http.ResponseWriter, req *http.Request) {
-			t.Logf("%v: %v", req.Method, req.URL)
+			t.Logf("%v: %v", req.Method, req.URL.RequestURI())
 		})
-		e.Get(`\d+`, func(w http.ResponseWriter, req *http.Request) {
-			url := req.URL.RequestURI()
-			param := path.Base(url)
-			fmt.Fprintf(w, "got %s", param)
+		e.Get(":id", func(w http.ResponseWriter, req *http.Request, param map[string]string) {
+			fmt.Fprintf(w, "got %s", param["id"])
 		})
+		return e
 	})
 
 	ts := httptest.NewServer(endpoint)
@@ -35,23 +31,16 @@ func TestEndpoint(t *testing.T) {
 	}
 	defer resp.Body.Close()
 	if "got 15" != string(r) {
-		t.Errorf(`Endpoint.Get(\d+) = %v`, resp)
+		t.Errorf(`Endpoint.Get(:id) = %v`, resp)
 	}
 }
 
 func Test404(t *testing.T) {
-	endpoint := NewEndpoint(func(e Endpoint) {
-		e.Get("", func(w http.ResponseWriter, req *http.Request) {
-
-			url := req.URL.RequestURI()
-			param := path.Base(url)
-			fmt.Fprintf(w, "got %s", param)
+	endpoint := NewEndpoint("/", func(e Endpoint) Endpoint {
+		e.Get("/", func(w http.ResponseWriter, req *http.Request, _ map[string]string) {
+			w.WriteHeader(http.StatusOK)
 		})
-		e.Get("/", func(w http.ResponseWriter, req *http.Request) {
-			url := req.URL.RequestURI()
-			param := path.Base(url)
-			fmt.Fprintf(w, "got %s", param)
-		})
+		return e
 	})
 
 	ts := httptest.NewServer(endpoint)
@@ -61,17 +50,6 @@ func Test404(t *testing.T) {
 		t.Errorf("Error: %v", err)
 	}
 	if resp.StatusCode != 404 {
-		t.Errorf(`Endpoint.Get(\d+) = %v`, resp)
-	}
-}
-
-func TestGetParam(t *testing.T) {
-	req := httptest.NewRequest("GET", "http://example.com/foo/1", nil)
-	v, ok := utils.RequestParam(req)
-	if !ok {
-		t.Errorf(`RequestParam(%v) = "%s", false`, req, v)
-	}
-	if v != "1" {
-		t.Errorf(`RequestParam(%v) = "%s", true`, req, v)
+		t.Errorf(`Endpoint.Get(:id) = %v`, resp)
 	}
 }
