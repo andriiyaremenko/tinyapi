@@ -2,14 +2,23 @@ package middleware
 
 import (
 	"net/http"
+
+	"github.com/andriiyaremenko/tinyapi/api"
 )
 
-func ContentType(contentType string) http.HandlerFunc {
-	return func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", contentType)
+func AddHeader(key, value string) api.Middleware {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set(key, value)
+			next(w, req)
+		}
 	}
 }
 
-func JSONContentType() http.HandlerFunc {
-	return ContentType("application/json")
+func AddContentType(contentType string) api.Middleware {
+	return AddHeader("Content-Type", contentType)
+}
+
+func AddJSONContentType() api.Middleware {
+	return AddContentType("application/json")
 }
