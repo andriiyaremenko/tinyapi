@@ -28,6 +28,10 @@ func CombineEndpoints(path string, middleware api.Middleware, endpoints ...api.E
 		api.ServeHTTP(w, req)
 	}
 
+	if middleware == nil {
+		return http.HandlerFunc(fn)
+	}
+
 	return http.HandlerFunc(middleware(fn))
 }
 
