@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/andriiyaremenko/tinyapi/api"
@@ -25,7 +24,7 @@ func AddJSONContentType() api.Middleware {
 	return AddContentType("application/json")
 }
 
-func AddTracer(getLogger func(ctx context.Context, module string) api.Logger) api.Middleware {
+func AddTracer(getLogger api.GetLogger) api.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, req *http.Request) {
 			t := internal.NewTracer(w)
