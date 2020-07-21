@@ -18,10 +18,9 @@ func DefaultEndpoint(path string) api.Endpoint {
 }
 
 type endpoint struct {
-	path       string
-	routes     map[string]map[string]api.HandlerFunc
-	notFound   http.HandlerFunc
-	middleware []http.HandlerFunc
+	path     string
+	routes   map[string]map[string]api.HandlerFunc
+	notFound http.HandlerFunc
 }
 
 func (e *endpoint) Path() string {
@@ -85,18 +84,11 @@ func (e *endpoint) Delete(param string, handler api.HandlerFunc) {
 	e.Handle(http.MethodDelete, param, handler)
 }
 
-func (e *endpoint) Middleware(handlers ...http.HandlerFunc) {
-	e.middleware = append(e.middleware, handlers...)
-}
-
 func (e *endpoint) NotFound(handler http.HandlerFunc) {
 	e.notFound = handler
 }
 
 func (e *endpoint) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	for _, h := range e.middleware {
-		h(w, req)
-	}
 	r, ok := e.routes[req.Method]
 	if !ok {
 		e.notFound(w, req)

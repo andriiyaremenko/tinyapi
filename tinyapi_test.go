@@ -13,9 +13,6 @@ import (
 
 func TestEndpoint(t *testing.T) {
 	endpoint := NewEndpoint("/", func(e api.Endpoint) api.Endpoint {
-		e.Middleware(func(w http.ResponseWriter, req *http.Request) {
-			t.Logf("%v: %v", req.Method, req.URL.RequestURI())
-		})
 		e.Get(":id", func(w http.ResponseWriter, req *http.Request, param map[string]string) {
 			fmt.Fprintf(w, "got %s", param["id"])
 		})

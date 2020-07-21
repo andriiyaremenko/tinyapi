@@ -11,7 +11,6 @@ type Endpoint interface {
 	PrependPath(prefix string)
 
 	NotFound(handler http.HandlerFunc)
-	Middleware(handlers ...http.HandlerFunc)
 
 	Handle(method string, param string, handler HandlerFunc)
 	Get(param string, handler HandlerFunc)
