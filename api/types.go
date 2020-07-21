@@ -25,3 +25,9 @@ type HandlerFunc func(w http.ResponseWriter, req *http.Request, params map[strin
 type Configure func(e Endpoint) Endpoint
 
 type Middleware func(next http.HandlerFunc) http.HandlerFunc
+
+type Logger interface {
+	Infof(format string, v ...interface{})
+	Warnf(format string, v ...interface{})
+	Errorf(format string, v ...interface{})
+}
