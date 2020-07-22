@@ -16,16 +16,38 @@ func CombineMiddleware(ms ...api.Middleware) api.Middleware {
 	}
 }
 
-func CombineEndpoints(path string, middleware api.Middleware, endpoints ...api.Endpoint) http.Handler {
-	fn := func(w http.ResponseWriter, req *http.Request) {
-		api := http.NewServeMux()
+func CombineEndpoints(path string, notFound http.HandlerFunc, middleware api.Middleware, endpoints ...api.Endpoint) http.Handler {
+	api := http.NewServeMux()
+	if notFound == nil {
+		notFound = http.NotFound
+	}
 
-		for _, e := range endpoints {
-			e.PrependPath(path)
-			api.Handle(e.Path(), e)
+	for _, e := range endpoints {
+		e.PrependPath(path)
+		e.NotFound(notFound)
+		api.Handle(e.Path(), e)
+	}
+
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		// we would just call api.ServeHTTP(w, req), but we want our own NotFound handler
+		// and there is no evident way to replace default NotFound handler with http.ServeMux
+		// so we replicate http.ServeMux.ServeHTTP method here and hijack NotFound and handle it by ourselfs
+		if req.RequestURI == "*" {
+			if req.ProtoAtLeast(1, 1) {
+				w.Header().Set("Connection", "close")
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
-		api.ServeHTTP(w, req)
+		h, pattern := api.Handler(req)
+
+		if pattern == "" {
+			notFound(w, req)
+			return
+		}
+
+		h.ServeHTTP(w, req)
 	}
 
 	if middleware == nil {

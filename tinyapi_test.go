@@ -65,9 +65,13 @@ func TestCombineEndpoints(t *testing.T) {
 	addTest1Header := middleware.AddHeader("test1", "success")
 	addTest2Header := middleware.AddHeader("test2", "success")
 
-	ts := httptest.NewServer(CombineEndpoints("/", CombineMiddleware(addTest1Header, addTest2Header), endpoint))
+	ts := httptest.NewServer(CombineEndpoints("/", nil, CombineMiddleware(addTest1Header, addTest2Header), endpoint))
 	defer ts.Close()
 	resp, err := http.Get(fmt.Sprintf("%s/15", ts.URL))
+
+	if resp.StatusCode != 404 {
+		t.Errorf(`Endpoint.Get(:id) = %v`, resp)
+	}
 
 	if err != nil {
 		t.Errorf("Error: %v", err)

@@ -10,16 +10,18 @@ import (
 
 func DefaultEndpoint(path string) api.Endpoint {
 	return &endpoint{
-		path:     path,
-		routes:   make(map[string]map[string]api.HandlerFunc),
-		notFound: http.NotFound,
+		path:        path,
+		routes:      make(map[string]map[string]api.HandlerFunc),
+		notFound:    http.NotFound,
+		notFoundSet: false,
 	}
 }
 
 type endpoint struct {
-	path     string
-	routes   map[string]map[string]api.HandlerFunc
-	notFound http.HandlerFunc
+	path        string
+	routes      map[string]map[string]api.HandlerFunc
+	notFound    http.HandlerFunc
+	notFoundSet bool
 }
 
 func (e *endpoint) Path() string {
@@ -84,7 +86,12 @@ func (e *endpoint) Delete(param string, handler api.HandlerFunc) {
 }
 
 func (e *endpoint) NotFound(handler http.HandlerFunc) {
+	if e.notFoundSet {
+		return
+	}
+
 	e.notFound = handler
+	e.notFoundSet = true
 }
 
 func (e *endpoint) ServeHTTP(w http.ResponseWriter, req *http.Request) {
