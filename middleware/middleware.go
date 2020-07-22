@@ -52,5 +52,4 @@ func AddTracer(getLogger api.GetLogger) api.Middleware {
 			}
 		}
 	}
-
 }

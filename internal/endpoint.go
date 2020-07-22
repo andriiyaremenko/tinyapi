@@ -6,14 +6,13 @@ import (
 	"strings"
 
 	"github.com/andriiyaremenko/tinyapi/api"
-	"github.com/andriiyaremenko/tinyapi/utils"
 )
 
 func DefaultEndpoint(path string) api.Endpoint {
 	return &endpoint{
 		path:     path,
 		routes:   make(map[string]map[string]api.HandlerFunc),
-		notFound: utils.NotFound,
+		notFound: http.NotFound,
 	}
 }
 
