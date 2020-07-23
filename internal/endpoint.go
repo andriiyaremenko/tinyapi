@@ -106,6 +106,11 @@ func (e *endpoint) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	reqParamsLen := len(reqParams)
 
 	for k, v := range r {
+		if k == "/" && reqParamStr == "/" {
+			param := make(map[string]string)
+			v(w, req, param)
+			return
+		}
 		routeParams := strings.Split(k, "/")
 		if len(routeParams) != reqParamsLen {
 			continue
@@ -124,11 +129,7 @@ func (e *endpoint) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (e *endpoint) requestParam(req *http.Request) string {
-	result := req.URL.RequestURI()[len(req.URL.Host+e.path):]
-
-	if result == "" {
-		return "/"
-	}
+	result := req.URL.Path[len(e.path):]
 
 	return result
 }

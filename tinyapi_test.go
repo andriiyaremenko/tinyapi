@@ -14,14 +14,17 @@ import (
 func TestEndpoint(t *testing.T) {
 	endpoint := NewEndpoint("/", func(e api.Endpoint) api.Endpoint {
 		e.Get(":id", func(w http.ResponseWriter, req *http.Request, param map[string]string) {
-			fmt.Fprintf(w, "got %s", param["id"])
+			fmt.Fprintf(w, param["id"])
+		})
+		e.Get(":id/:nothing", func(w http.ResponseWriter, req *http.Request, param map[string]string) {
+			fmt.Fprintf(w, param["id"])
 		})
 		return e
 	})
 
 	ts := httptest.NewServer(endpoint)
 	defer ts.Close()
-	resp, err := http.Get(fmt.Sprintf("%s/15", ts.URL))
+	resp, err := http.Get(fmt.Sprintf("%s/15?test", ts.URL))
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -30,8 +33,8 @@ func TestEndpoint(t *testing.T) {
 		t.Errorf("Error: %v", err)
 	}
 	defer resp.Body.Close()
-	if "got 15" != string(r) {
-		t.Errorf(`Endpoint.Get(:id) = %v`, resp)
+	if "15" != string(r) {
+		t.Errorf(`Endpoint.Get(:id) = %v; want 15`, string(r))
 	}
 }
 
