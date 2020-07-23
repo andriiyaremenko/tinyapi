@@ -8,7 +8,7 @@ type tracer struct {
 }
 
 func NewTracer(w http.ResponseWriter) *tracer {
-	return &tracer{w, 0}
+	return &tracer{w, http.StatusOK}
 }
 
 func (t *tracer) WriteHeader(code int) {
