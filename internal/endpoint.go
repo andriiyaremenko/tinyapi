@@ -49,10 +49,6 @@ func (e *endpoint) Handle(method string, param string, handler api.HandlerFunc) 
 		param = param[1:]
 	}
 
-	if len(param) > 1 && param[len(param)-1] == '/' {
-		param = param[:len(param)-2]
-	}
-
 	_, ok := e.routes[method]
 	if !ok {
 		e.routes[method] = make(map[string]api.HandlerFunc)
