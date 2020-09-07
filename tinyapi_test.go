@@ -13,6 +13,9 @@ import (
 
 func TestEndpoint(t *testing.T) {
 	endpoint := NewEndpoint("/", func(e api.Endpoint) api.Endpoint {
+		e.Get("/", func(w http.ResponseWriter, req *http.Request, param map[string]string) {
+			fmt.Fprintf(w, "nothing")
+		})
 		e.Get(":id", func(w http.ResponseWriter, req *http.Request, param map[string]string) {
 			fmt.Fprintf(w, param["id"])
 		})
@@ -35,6 +38,19 @@ func TestEndpoint(t *testing.T) {
 	defer resp.Body.Close()
 	if "15" != string(r) {
 		t.Errorf(`Endpoint.Get(:id) = %v; want 15`, string(r))
+	}
+
+	resp, err = http.Get(fmt.Sprintf("%s/", ts.URL))
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+	r, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+	defer resp.Body.Close()
+	if "nothing" != string(r) {
+		t.Errorf(`Endpoint.Get(:id) = %v; want nothing`, string(r))
 	}
 }
 

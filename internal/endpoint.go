@@ -49,6 +49,10 @@ func (e *endpoint) Handle(method string, param string, handler api.HandlerFunc) 
 		param = param[1:]
 	}
 
+	if len(param) > 1 && param[len(param)-1] == '/' {
+		param = param[:len(param)-2]
+	}
+
 	_, ok := e.routes[method]
 	if !ok {
 		e.routes[method] = make(map[string]api.HandlerFunc)
@@ -98,6 +102,10 @@ func (e *endpoint) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	reqParamStr := e.requestParam(req)
 
+	if len(reqParamStr) > 1 && reqParamStr[len(reqParamStr)-1] == '/' {
+		reqParamStr = reqParamStr[:len(reqParamStr)-2]
+	}
+
 	reqParams := strings.Split(reqParamStr, "/")
 	reqParamsLen := len(reqParams)
 
@@ -126,6 +134,10 @@ func (e *endpoint) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (e *endpoint) requestParam(req *http.Request) string {
 	result := req.URL.Path[len(e.path):]
+
+	if result == "" {
+		return "/"
+	}
 
 	return result
 }
