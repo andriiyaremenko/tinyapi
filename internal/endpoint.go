@@ -13,6 +13,7 @@ func DefaultEndpoint(path string) api.Endpoint {
 		path:        path,
 		routes:      make(map[string]map[string]api.HandlerFunc),
 		notFound:    http.NotFound,
+		webSocket:   make(map[string]http.HandlerFunc),
 		notFoundSet: false,
 	}
 }
@@ -21,6 +22,7 @@ type endpoint struct {
 	path        string
 	routes      map[string]map[string]api.HandlerFunc
 	notFound    http.HandlerFunc
+	webSocket   map[string]http.HandlerFunc
 	notFoundSet bool
 }
 
@@ -85,6 +87,26 @@ func (e *endpoint) Delete(param string, handler api.HandlerFunc) {
 	e.Handle(http.MethodDelete, param, handler)
 }
 
+func (e *endpoint) WebSocket(param string, handler http.HandlerFunc) {
+	if param == "" {
+		param = "/"
+	}
+
+	if len(param) > 1 && param[0] == '/' {
+		param = param[1:]
+	}
+
+	if len(param) > 1 && param[len(param)-1] == '/' {
+		param = param[:len(param)-2]
+	}
+
+	if _, ok := e.webSocket[param]; ok {
+		panic(fmt.Errorf("handler for WebSocket %s already exists", param))
+	}
+
+	e.webSocket[param] = handler
+}
+
 func (e *endpoint) NotFound(handler http.HandlerFunc) {
 	if e.notFoundSet {
 		return
@@ -95,15 +117,20 @@ func (e *endpoint) NotFound(handler http.HandlerFunc) {
 }
 
 func (e *endpoint) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r, ok := e.routes[req.Method]
-	if !ok {
-		e.notFound(w, req)
-		return
-	}
 	reqParamStr := e.requestParam(req)
 
 	if len(reqParamStr) > 1 && reqParamStr[len(reqParamStr)-1] == '/' {
 		reqParamStr = reqParamStr[:len(reqParamStr)-2]
+	}
+
+	if h, ok := e.webSocket[reqParamStr]; ok {
+		h(w, req)
+	}
+
+	r, ok := e.routes[req.Method]
+	if !ok {
+		e.notFound(w, req)
+		return
 	}
 
 	reqParams := strings.Split(reqParamStr, "/")

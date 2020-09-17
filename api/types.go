@@ -19,6 +19,7 @@ type Endpoint interface {
 	Put(param string, handler HandlerFunc)
 	Patch(param string, handler HandlerFunc)
 	Delete(param string, handler HandlerFunc)
+	WebSocket(param string, handler http.HandlerFunc)
 }
 
 type HandlerFunc func(w http.ResponseWriter, req *http.Request, params map[string]string)
