@@ -5,27 +5,23 @@ import (
 	"net/http"
 )
 
-type Endpoint interface {
-	http.Handler
+type verb string
 
-	Path() string
-	PrependPath(prefix string)
+const (
+	CONNECT   = http.MethodConnect
+	DELETE    = http.MethodDelete
+	GET       = http.MethodGet
+	HEAD      = http.MethodHead
+	OPTIONS   = http.MethodOptions
+	PATCH     = http.MethodPatch
+	POST      = http.MethodPost
+	PUT       = http.MethodPut
+	TRACE     = http.MethodTrace
+	WEBSOCKET = "WEBSOCKET"
+)
 
-	NotFound(handler http.HandlerFunc)
-
-	Handle(method string, param string, handler HandlerFunc)
-	Get(param string, handler HandlerFunc)
-	Post(param string, handler HandlerFunc)
-	Put(param string, handler HandlerFunc)
-	Patch(param string, handler HandlerFunc)
-	Delete(param string, handler HandlerFunc)
-	WebSocket(param string, handler http.HandlerFunc)
-}
-
-type HandlerFunc func(w http.ResponseWriter, req *http.Request, params map[string]string)
-
-type Configure func(e Endpoint) Endpoint
-
+type RouteSegment = map[string]func(map[string]string) http.HandlerFunc
+type Endpoint = map[verb]RouteSegment
 type Middleware func(next http.HandlerFunc) http.HandlerFunc
 
 type Logger interface {

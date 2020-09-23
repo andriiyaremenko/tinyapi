@@ -1,10 +1,18 @@
 package tinyapi
 
 import (
+	"fmt"
 	"net/http"
+	"sort"
+	"strings"
 
 	"github.com/andriiyaremenko/tinyapi/api"
 	"github.com/andriiyaremenko/tinyapi/internal"
+)
+
+const (
+	ANSIReset       = "\033[0m"
+	ANSIColorYellow = "\033[33m"
 )
 
 func CombineMiddleware(ms ...api.Middleware) api.Middleware {
@@ -16,55 +24,97 @@ func CombineMiddleware(ms ...api.Middleware) api.Middleware {
 	}
 }
 
-func CombineEndpoints(path string, notFound http.HandlerFunc, middleware api.Middleware, endpoints ...api.Endpoint) http.Handler {
-	api := http.NewServeMux()
-	if notFound == nil {
-		notFound = http.NotFound
+func CombineEndpoints(endpoints map[string]api.Endpoint, middleware api.Middleware, notFound http.HandlerFunc) http.Handler {
+	var sb strings.Builder
+
+	var baseRoutes []string
+	for base := range endpoints {
+		baseRoutes = append(baseRoutes, base)
 	}
 
-	for _, e := range endpoints {
-		e.PrependPath(path)
-		e.NotFound(notFound)
-		api.Handle(e.Path(), e)
-	}
+	sort.Strings(baseRoutes)
 
-	fn := func(w http.ResponseWriter, req *http.Request) {
-		// we would just call api.ServeHTTP(w, req), but we want our own NotFound handler
-		// and there is no evident way to replace default NotFound handler with http.ServeMux
-		// so we replicate http.ServeMux.ServeHTTP method here and hijack NotFound and handle it by ourselfs
-		if req.RequestURI == "*" {
-			if req.ProtoAtLeast(1, 1) {
-				w.Header().Set("Connection", "close")
+	sb.WriteString(ANSIColorYellow)
+	sb.WriteString("API definition:\n")
+	for _, base := range baseRoutes {
+		e := endpoints[base]
+		for method, routeSegments := range e {
+			var pathSegments []string
+			for pathSegment := range routeSegments {
+				pathSegments = append(pathSegments, pathSegment)
 			}
-			w.WriteHeader(http.StatusBadRequest)
-			return
+
+			sort.Strings(pathSegments)
+
+			for _, pathSegment := range pathSegments {
+				path := internal.CombinePath(base, pathSegment)
+				sb.WriteString(fmt.Sprintf("\t%s %s\n", method, path))
+			}
 		}
-
-		h, pattern := api.Handler(req)
-
-		if pattern == "" {
-			notFound(w, req)
-			return
-		}
-
-		h.ServeHTTP(w, req)
 	}
 
+	sb.WriteString(ANSIReset)
+	fmt.Println(sb.String())
+
+	api := &apiHandler{endpoints, notFound}
 	if middleware == nil {
-		return http.HandlerFunc(fn)
+		return api
 	}
 
-	return http.HandlerFunc(middleware(fn))
+	return http.HandlerFunc(middleware(api.ServeHTTP))
 }
 
-func NewEndpoint(path string, configure api.Configure) api.Endpoint {
-	if path[0] != '/' {
-		path = "/" + path
+type apiHandler struct {
+	Endpoints map[string]api.Endpoint
+	NotFound  http.HandlerFunc
+}
+
+func (apiH *apiHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// copied from  http.ServeMux.ServeHTTP method
+	if req.RequestURI == "*" {
+		if req.ProtoAtLeast(1, 1) {
+			w.Header().Set("Connection", "close")
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	if path[len(path)-1] != '/' {
-		path = path + "/"
+	if apiH.NotFound == nil {
+		apiH.NotFound = http.NotFound
 	}
 
-	return configure(internal.DefaultEndpoint(path))
+	var baseRoutes []string
+	for base := range apiH.Endpoints {
+		baseRoutes = append(baseRoutes, base)
+	}
+
+	sort.Strings(baseRoutes)
+
+	for _, base := range baseRoutes {
+		e := apiH.Endpoints[base]
+		for method, routeSegments := range e {
+			if method != api.WEBSOCKET && string(method) != req.Method {
+				continue
+			}
+
+			var pathSegments []string
+			for pathSegment := range routeSegments {
+				pathSegments = append(pathSegments, pathSegment)
+			}
+
+			sort.Strings(pathSegments)
+
+			for _, pathSegment := range pathSegments {
+				handler := routeSegments[pathSegment]
+				path := internal.CombinePath(base, pathSegment)
+
+				if props, ok := internal.GetRouteProps(path, req.URL.Path); ok {
+					handler(props)(w, req)
+					return
+				}
+			}
+		}
+	}
+
+	apiH.NotFound(w, req)
 }
