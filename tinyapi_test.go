@@ -9,98 +9,116 @@ import (
 
 	"github.com/andriiyaremenko/tinyapi/api"
 	"github.com/andriiyaremenko/tinyapi/middleware"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEndpoint(t *testing.T) {
-	endpoint := NewEndpoint("/", func(e api.Endpoint) api.Endpoint {
-		e.Get("/", func(w http.ResponseWriter, req *http.Request, param map[string]string) {
-			fmt.Fprintf(w, "nothing")
-		})
-		e.Get(":id", func(w http.ResponseWriter, req *http.Request, param map[string]string) {
-			fmt.Fprintf(w, param["id"])
-		})
-		e.Get(":id/:nothing", func(w http.ResponseWriter, req *http.Request, param map[string]string) {
-			fmt.Fprintf(w, param["id"])
-		})
-		return e
-	})
+	assert := assert.New(t)
+	endpoint := map[string]api.Endpoint{
+		"/": api.Endpoint{
+			api.GET: api.RouteSegment{
+				"/": func(_ map[string]string) http.HandlerFunc {
+					return func(w http.ResponseWriter, req *http.Request) {
+						fmt.Fprintf(w, "nothing")
+					}
+				},
+				"/:id": func(param map[string]string) http.HandlerFunc {
+					return func(w http.ResponseWriter, req *http.Request) {
+						fmt.Fprintf(w, param["id"])
+					}
+				},
+				"/:id/:nothing": func(param map[string]string) http.HandlerFunc {
+					return func(w http.ResponseWriter, req *http.Request) {
+						fmt.Fprintf(w, param["id"])
+					}
+				},
+			},
+		},
+	}
 
-	ts := httptest.NewServer(endpoint)
+	ts := httptest.NewServer(CombineEndpoints(endpoint, nil, nil))
+
 	defer ts.Close()
+
 	resp, err := http.Get(fmt.Sprintf("%s/15?test", ts.URL))
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
+
 	r, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
+
 	defer resp.Body.Close()
-	if "15" != string(r) {
-		t.Errorf(`Endpoint.Get(:id) = %v; want 15`, string(r))
-	}
+
+	assert.Equal(string(r), "15")
 
 	resp, err = http.Get(fmt.Sprintf("%s/", ts.URL))
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
+
 	r, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
+
 	defer resp.Body.Close()
-	if "nothing" != string(r) {
-		t.Errorf(`Endpoint.Get(:id) = %v; want nothing`, string(r))
-	}
+
+	assert.Equal(string(r), "nothing")
 }
 
 func Test404(t *testing.T) {
-	endpoint := NewEndpoint("/", func(e api.Endpoint) api.Endpoint {
-		e.Get("/", func(w http.ResponseWriter, req *http.Request, _ map[string]string) {
-			w.WriteHeader(http.StatusOK)
-		})
-		return e
-	})
+	assert := assert.New(t)
+	endpoint := map[string]api.Endpoint{
+		"/": api.Endpoint{
+			api.GET: api.RouteSegment{
+				"/": func(_ map[string]string) http.HandlerFunc {
+					return func(w http.ResponseWriter, req *http.Request) {
+						w.WriteHeader(http.StatusOK)
+					}
+				},
+			},
+		},
+	}
+	ts := httptest.NewServer(CombineEndpoints(endpoint, nil, nil))
 
-	ts := httptest.NewServer(endpoint)
 	defer ts.Close()
+
 	resp, err := http.Get(fmt.Sprintf("%s/15", ts.URL))
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
-	if resp.StatusCode != 404 {
-		t.Errorf(`Endpoint.Get(:id) = %v`, resp)
-	}
+
+	assert.Equal(404, resp.StatusCode)
 }
 
 func TestCombineEndpoints(t *testing.T) {
-	endpoint := NewEndpoint("/", func(e api.Endpoint) api.Endpoint {
-		e.Get("/", func(w http.ResponseWriter, req *http.Request, _ map[string]string) {
-			w.WriteHeader(http.StatusOK)
-		})
-		return e
-	})
-
+	assert := assert.New(t)
+	endpoint := map[string]api.Endpoint{
+		"/": api.Endpoint{
+			api.GET: api.RouteSegment{
+				"/": func(_ map[string]string) http.HandlerFunc {
+					return func(w http.ResponseWriter, req *http.Request) {
+						w.WriteHeader(http.StatusOK)
+					}
+				},
+			},
+		},
+	}
 	addTest1Header := middleware.AddHeader("test1", "success")
 	addTest2Header := middleware.AddHeader("test2", "success")
+	ts := httptest.NewServer(CombineEndpoints(endpoint, CombineMiddleware(addTest1Header, addTest2Header), nil))
 
-	ts := httptest.NewServer(CombineEndpoints("/", nil, CombineMiddleware(addTest1Header, addTest2Header), endpoint))
 	defer ts.Close()
+
 	resp, err := http.Get(fmt.Sprintf("%s/15", ts.URL))
-
-	if resp.StatusCode != 404 {
-		t.Errorf(`Endpoint.Get(:id) = %v`, resp)
-	}
-
 	if err != nil {
 		t.Errorf("Error: %v", err)
 	}
 
-	if resp.Header.Get("test1") != "success" {
-		t.Error("addTest1Header was not called, headers were not set")
-	}
-
-	if resp.Header.Get("test2") != "success" {
-		t.Error("addTest2Header was not called, headers were not set")
-	}
+	assert.Equal(404, resp.StatusCode)
+	assert.Equal("success", resp.Header.Get("test1"), "addTest1Header was not called, headers were not set")
+	assert.Equal("success", resp.Header.Get("test2"), "addTest2Header was not called, headers were not set")
 }
