@@ -15,22 +15,18 @@ import (
 func TestEndpoint(t *testing.T) {
 	assert := assert.New(t)
 	endpoint := map[string]api.Endpoint{
-		"/": api.Endpoint{
+		"/": {
 			api.GET: api.RouteSegment{
-				"/": func(_ map[string]string) http.HandlerFunc {
-					return func(w http.ResponseWriter, req *http.Request) {
-						fmt.Fprintf(w, "nothing")
-					}
+				"/": func(w http.ResponseWriter, req *http.Request) {
+					fmt.Fprintf(w, "nothing")
 				},
-				"/:id": func(param map[string]string) http.HandlerFunc {
-					return func(w http.ResponseWriter, req *http.Request) {
-						fmt.Fprintf(w, param["id"])
-					}
+				"/:id": func(w http.ResponseWriter, req *http.Request) {
+					id, _ := GetRouteParams(req, "id")
+					fmt.Fprintf(w, id)
 				},
-				"/:id/:nothing": func(param map[string]string) http.HandlerFunc {
-					return func(w http.ResponseWriter, req *http.Request) {
-						fmt.Fprintf(w, param["id"])
-					}
+				"/:id/:nothing": func(w http.ResponseWriter, req *http.Request) {
+					id, _ := GetRouteParams(req, "id")
+					fmt.Fprintf(w, id)
 				},
 			},
 		},
@@ -72,12 +68,10 @@ func TestEndpoint(t *testing.T) {
 func Test404(t *testing.T) {
 	assert := assert.New(t)
 	endpoint := map[string]api.Endpoint{
-		"/": api.Endpoint{
+		"/": {
 			api.GET: api.RouteSegment{
-				"/": func(_ map[string]string) http.HandlerFunc {
-					return func(w http.ResponseWriter, req *http.Request) {
-						w.WriteHeader(http.StatusOK)
-					}
+				"/": func(w http.ResponseWriter, req *http.Request) {
+					w.WriteHeader(http.StatusOK)
 				},
 			},
 		},
@@ -97,12 +91,10 @@ func Test404(t *testing.T) {
 func TestCombineEndpoints(t *testing.T) {
 	assert := assert.New(t)
 	endpoint := map[string]api.Endpoint{
-		"/": api.Endpoint{
+		"/": {
 			api.GET: api.RouteSegment{
-				"/": func(_ map[string]string) http.HandlerFunc {
-					return func(w http.ResponseWriter, req *http.Request) {
-						w.WriteHeader(http.StatusOK)
-					}
+				"/": func(w http.ResponseWriter, req *http.Request) {
+					w.WriteHeader(http.StatusOK)
 				},
 			},
 		},

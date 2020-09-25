@@ -20,7 +20,7 @@ const (
 	WEBSOCKET = "WEBSOCKET"
 )
 
-type RouteSegment = map[string]func(map[string]string) http.HandlerFunc
+type RouteSegment = map[string]http.HandlerFunc
 type Endpoint = map[verb]RouteSegment
 type Middleware func(next http.HandlerFunc) http.HandlerFunc
 

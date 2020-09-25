@@ -109,7 +109,12 @@ func (apiH *apiHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				path := internal.CombinePath(base, pathSegment)
 
 				if props, ok := internal.GetRouteProps(path, req.URL.Path); ok {
-					handler(props)(w, req)
+					q := req.URL.Query()
+					for key, value := range props {
+						q.Set(getParamKey(key), value)
+					}
+					req.URL.RawQuery = q.Encode()
+					handler(w, req)
 					return
 				}
 			}
@@ -117,4 +122,19 @@ func (apiH *apiHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	apiH.NotFound(w, req)
+}
+
+func GetRouteParams(req *http.Request, param string) (string, bool) {
+	q := req.URL.Query()
+	vals, ok := q[getParamKey(param)]
+
+	if !ok || len(vals) == 0 {
+		return "", false
+	}
+
+	return vals[0], true
+}
+
+func getParamKey(param string) string {
+	return fmt.Sprintf("params:%s", param)
 }
