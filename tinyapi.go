@@ -27,28 +27,20 @@ func CombineMiddleware(ms ...api.Middleware) api.Middleware {
 func CombineEndpoints(endpoints map[string]api.Endpoint, middleware api.Middleware, notFound http.HandlerFunc) http.Handler {
 	var sb strings.Builder
 
-	var baseRoutes []string
-	for base := range endpoints {
-		baseRoutes = append(baseRoutes, base)
-	}
-
-	sort.Strings(baseRoutes)
-
 	sb.WriteString(ANSIColorYellow)
 	sb.WriteString("API definition:\n")
-	for _, base := range baseRoutes {
-		e := endpoints[base]
+	for base, e := range endpoints {
 		for method, routeSegments := range e {
 			var pathSegments []string
 			for pathSegment := range routeSegments {
-				pathSegments = append(pathSegments, pathSegment)
+				path := internal.CombinePath(base, pathSegment)
+				pathSegments = append(pathSegments, fmt.Sprintf("\t%s \t%s\n", method, path))
 			}
 
 			sort.Strings(pathSegments)
 
 			for _, pathSegment := range pathSegments {
-				path := internal.CombinePath(base, pathSegment)
-				sb.WriteString(fmt.Sprintf("\t%s %s\n", method, path))
+				sb.WriteString(pathSegment)
 			}
 		}
 	}
