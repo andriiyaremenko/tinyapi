@@ -119,7 +119,7 @@ func TestSameSectionEndpoint(t *testing.T) {
 	assert := assert.New(t)
 	endpoint := map[string]api.Endpoint{
 		"/": {
-			api.GET: api.RouteSegment{
+			api.GET: {
 				"/abc/ad": func(w http.ResponseWriter, req *http.Request) {
 					fmt.Fprintf(w, "right")
 				},
@@ -127,6 +127,14 @@ func TestSameSectionEndpoint(t *testing.T) {
 					fmt.Fprintf(w, "wrong")
 				},
 			},
+			api.CONNECT: {"/abc/ad": func(w http.ResponseWriter, req *http.Request) {}},
+			api.DELETE:  {"/abc/ad": func(w http.ResponseWriter, req *http.Request) {}},
+			api.HEAD:    {"/abc/ad": func(w http.ResponseWriter, req *http.Request) {}},
+			api.OPTIONS: {"/abc/ad": func(w http.ResponseWriter, req *http.Request) {}},
+			api.PATCH:   {"/abc/ad": func(w http.ResponseWriter, req *http.Request) {}},
+			api.POST:    {"/abc/ad": func(w http.ResponseWriter, req *http.Request) {}},
+			api.PUT:     {"/abc/ad": func(w http.ResponseWriter, req *http.Request) {}},
+			api.TRACE:   {"/abc/ad": func(w http.ResponseWriter, req *http.Request) {}},
 		},
 	}
 

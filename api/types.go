@@ -8,16 +8,15 @@ import (
 type verb string
 
 const (
-	CONNECT   = http.MethodConnect
-	DELETE    = http.MethodDelete
-	GET       = http.MethodGet
-	HEAD      = http.MethodHead
-	OPTIONS   = http.MethodOptions
-	PATCH     = http.MethodPatch
-	POST      = http.MethodPost
-	PUT       = http.MethodPut
-	TRACE     = http.MethodTrace
-	WEBSOCKET = "WEBSOCKET"
+	CONNECT = http.MethodConnect
+	DELETE  = http.MethodDelete
+	GET     = http.MethodGet
+	HEAD    = http.MethodHead
+	OPTIONS = http.MethodOptions
+	PATCH   = http.MethodPatch
+	POST    = http.MethodPost
+	PUT     = http.MethodPut
+	TRACE   = http.MethodTrace
 )
 
 type RouteSegment = map[string]http.HandlerFunc

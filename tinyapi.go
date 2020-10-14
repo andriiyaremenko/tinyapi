@@ -27,23 +27,36 @@ func CombineMiddleware(ms ...api.Middleware) api.Middleware {
 func CombineEndpoints(endpoints map[string]api.Endpoint, middleware api.Middleware, notFound http.HandlerFunc) http.Handler {
 	var sb strings.Builder
 	var pathSegments []string
-
-	sb.WriteString(ANSIColorYellow)
-	sb.WriteString("API definition:\n")
+	methods := make(map[string][]string)
 
 	for base, e := range endpoints {
 		for method, routeSegments := range e {
 			for pathSegment := range routeSegments {
 				path := internal.CombinePath(base, pathSegment)
-				pathSegments = append(pathSegments, fmt.Sprintf("\t%s \t%s\n", method, path))
+				if _, ok := methods[path]; !ok {
+					pathSegments = append(pathSegments, path)
+				}
+				methods[path] = append(methods[path], string(method))
 			}
 		}
 	}
 
 	sort.Strings(pathSegments)
 
+	sb.WriteString(ANSIColorYellow)
+	sb.WriteString("\nAPI definition:\n")
+
 	for _, pathSegment := range pathSegments {
-		sb.WriteString(pathSegment)
+		methods := methods[pathSegment]
+		sort.Strings(methods)
+		sb.WriteByte('\n')
+		for _, method := range methods {
+			sb.WriteByte('\t')
+			sb.WriteString(method)
+			sb.WriteByte('\t')
+			sb.WriteString(pathSegment)
+			sb.WriteByte('\n')
+		}
 	}
 
 	sb.WriteString(ANSIReset)
@@ -86,7 +99,7 @@ func (apiH *apiHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	for _, base := range baseRoutes {
 		e := apiH.Endpoints[base]
 		for method, routeSegments := range e {
-			if method != api.WEBSOCKET && string(method) != req.Method {
+			if string(method) != req.Method {
 				continue
 			}
 
