@@ -57,6 +57,10 @@ func GetRouteProps(apiPath, actualRoute string) (map[string]string, bool) {
 	}
 
 	for i, ps := range pathSegments {
+		if ps[0] != ':' && ps != routeSegments[i] {
+			return nil, false
+		}
+
 		if ps[0] != ':' {
 			continue
 		}

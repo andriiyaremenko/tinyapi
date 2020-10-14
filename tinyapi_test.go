@@ -114,3 +114,51 @@ func TestCombineEndpoints(t *testing.T) {
 	assert.Equal("success", resp.Header.Get("test1"), "addTest1Header was not called, headers were not set")
 	assert.Equal("success", resp.Header.Get("test2"), "addTest2Header was not called, headers were not set")
 }
+
+func TestSameSectionEndpoint(t *testing.T) {
+	assert := assert.New(t)
+	endpoint := map[string]api.Endpoint{
+		"/": {
+			api.GET: api.RouteSegment{
+				"/abc/ad": func(w http.ResponseWriter, req *http.Request) {
+					fmt.Fprintf(w, "right")
+				},
+				"/be/de": func(w http.ResponseWriter, req *http.Request) {
+					fmt.Fprintf(w, "wrong")
+				},
+			},
+		},
+	}
+
+	ts := httptest.NewServer(CombineEndpoints(endpoint, nil, nil))
+
+	defer ts.Close()
+
+	resp, err := http.Get(fmt.Sprintf("%s/abc/ad", ts.URL))
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+
+	r, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	assert.Equal(string(r), "right")
+
+	resp, err = http.Get(fmt.Sprintf("%s/be/de", ts.URL))
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+
+	r, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	assert.Equal(string(r), "wrong")
+}
