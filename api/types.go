@@ -30,3 +30,11 @@ type Logger interface {
 }
 
 type GetLogger func(ctx context.Context, module string) Logger
+
+type Tracer interface {
+	http.ResponseWriter
+
+	Trace(req *http.Request)
+}
+
+type GetTracer func(w http.ResponseWriter) Tracer

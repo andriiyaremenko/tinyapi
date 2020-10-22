@@ -32,6 +32,9 @@ func TestEndpoint(t *testing.T) {
 		},
 	}
 
+	Print(endpoint)
+	t.Log(string(SprintJSON(endpoint)))
+
 	ts := httptest.NewServer(CombineEndpoints(endpoint, nil, nil))
 
 	defer ts.Close()
@@ -76,6 +79,10 @@ func Test404(t *testing.T) {
 			},
 		},
 	}
+
+	Print(endpoint)
+	t.Log(string(SprintJSON(endpoint)))
+
 	ts := httptest.NewServer(CombineEndpoints(endpoint, nil, nil))
 
 	defer ts.Close()
@@ -99,6 +106,10 @@ func TestCombineEndpoints(t *testing.T) {
 			},
 		},
 	}
+
+	Print(endpoint)
+	t.Log(string(SprintJSON(endpoint)))
+
 	addTest1Header := middleware.AddHeader("test1", "success")
 	addTest2Header := middleware.AddHeader("test2", "success")
 	ts := httptest.NewServer(CombineEndpoints(endpoint, CombineMiddleware(addTest1Header, addTest2Header), nil))
@@ -137,6 +148,9 @@ func TestSameSectionEndpoint(t *testing.T) {
 			api.TRACE:   {"/abc/ad": func(w http.ResponseWriter, req *http.Request) {}},
 		},
 	}
+
+	Print(endpoint)
+	t.Log(string(SprintJSON(endpoint)))
 
 	ts := httptest.NewServer(CombineEndpoints(endpoint, nil, nil))
 

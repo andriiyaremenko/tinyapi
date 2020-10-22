@@ -4,35 +4,21 @@ import (
 	"net/http"
 
 	"github.com/andriiyaremenko/tinyapi/api"
-	"github.com/andriiyaremenko/tinyapi/internal"
 )
 
-func AddTracer(getLogger api.GetLogger) api.Middleware {
+func AddTracer(getTracer api.GetTracer) api.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, req *http.Request) {
-			t := internal.NewTracer(w)
+			t := getTracer(w)
+
 			next(t, req)
-
-			l := getLogger(req.Context(), "Tracer")
-			code := t.StatusCode
-
-			switch {
-			case code >= 400:
-				l.Errorf("%s %s %s --> %d %s",
-					req.RemoteAddr, req.Method, req.RequestURI,
-					code, http.StatusText(code),
-				)
-			case code >= 300:
-				l.Warnf("%s %s %s --> %d %s",
-					req.RemoteAddr, req.Method, req.RequestURI,
-					code, http.StatusText(code),
-				)
-			default:
-				l.Infof("%s %s %s --> %d %s",
-					req.RemoteAddr, req.Method, req.RequestURI,
-					code, http.StatusText(code),
-				)
-			}
+			t.Trace(req)
 		}
 	}
+}
+
+func AddDefaultTracer(getLogger api.GetLogger) api.Middleware {
+	getTracer := func(w http.ResponseWriter) api.Tracer { return api.NewDefaultTracer(w, getLogger) }
+
+	return AddTracer(getTracer)
 }

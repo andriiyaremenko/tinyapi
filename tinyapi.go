@@ -1,6 +1,7 @@
 package tinyapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/andriiyaremenko/tinyapi/api"
 	"github.com/andriiyaremenko/tinyapi/internal"
+	"github.com/andriiyaremenko/tinyapi/utils"
 )
 
 const (
@@ -25,6 +27,15 @@ func CombineMiddleware(ms ...api.Middleware) api.Middleware {
 }
 
 func CombineEndpoints(endpoints map[string]api.Endpoint, middleware api.Middleware, notFound http.HandlerFunc) http.Handler {
+	api := &apiHandler{endpoints, notFound}
+	if middleware == nil {
+		return api
+	}
+
+	return http.HandlerFunc(middleware(api.ServeHTTP))
+}
+
+func Sprint(endpoints map[string]api.Endpoint) string {
 	var sb strings.Builder
 	var pathSegments []string
 	methods := make(map[string][]string)
@@ -42,8 +53,6 @@ func CombineEndpoints(endpoints map[string]api.Endpoint, middleware api.Middlewa
 	}
 
 	sort.Strings(pathSegments)
-
-	sb.WriteString(ANSIColorYellow)
 	sb.WriteString("\nAPI definition:\n")
 
 	for _, pathSegment := range pathSegments {
@@ -58,76 +67,54 @@ func CombineEndpoints(endpoints map[string]api.Endpoint, middleware api.Middlewa
 			sb.WriteByte('\n')
 		}
 	}
+	sb.WriteByte('\n')
 
-	sb.WriteString(ANSIReset)
-	fmt.Println(sb.String())
-
-	api := &apiHandler{endpoints, notFound}
-	if middleware == nil {
-		return api
-	}
-
-	return http.HandlerFunc(middleware(api.ServeHTTP))
+	return sb.String()
 }
 
-type apiHandler struct {
-	Endpoints map[string]api.Endpoint
-	NotFound  http.HandlerFunc
-}
+func SprintJSON(endpoints map[string]api.Endpoint) []byte {
+	var pathSegments []string
+	methods := make(map[string][]string)
+	definition := new(utils.ApiDefinition)
 
-func (apiH *apiHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// copied from  http.ServeMux.ServeHTTP method
-	if req.RequestURI == "*" {
-		if req.ProtoAtLeast(1, 1) {
-			w.Header().Set("Connection", "close")
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if apiH.NotFound == nil {
-		apiH.NotFound = http.NotFound
-	}
-
-	var baseRoutes []string
-	for base := range apiH.Endpoints {
-		baseRoutes = append(baseRoutes, base)
-	}
-
-	sort.Strings(baseRoutes)
-
-	for _, base := range baseRoutes {
-		e := apiH.Endpoints[base]
+	for base, e := range endpoints {
 		for method, routeSegments := range e {
-			if string(method) != req.Method {
-				continue
-			}
-
-			var pathSegments []string
 			for pathSegment := range routeSegments {
-				pathSegments = append(pathSegments, pathSegment)
-			}
-
-			sort.Strings(pathSegments)
-
-			for _, pathSegment := range pathSegments {
-				handler := routeSegments[pathSegment]
 				path := internal.CombinePath(base, pathSegment)
-
-				if props, ok := internal.GetRouteProps(path, req.URL.Path); ok {
-					q := req.URL.Query()
-					for key, value := range props {
-						q.Set(getParamKey(key), value)
-					}
-					req.URL.RawQuery = q.Encode()
-					handler(w, req)
-					return
+				if _, ok := methods[path]; !ok {
+					pathSegments = append(pathSegments, path)
 				}
+				methods[path] = append(methods[path], string(method))
 			}
 		}
 	}
 
-	apiH.NotFound(w, req)
+	sort.Strings(pathSegments)
+
+	for _, pathSegment := range pathSegments {
+		methods := methods[pathSegment]
+		sort.Strings(methods)
+		for _, method := range methods {
+			definition.Routes = append(definition.Routes,
+				utils.RouteDefinition{Method: method, Path: pathSegment})
+		}
+	}
+
+	b, err := json.Marshal(definition)
+	if err != nil {
+		panic(err)
+	}
+
+	return b
+}
+
+func Print(endpoints map[string]api.Endpoint) {
+	var sb strings.Builder
+
+	sb.WriteString(ANSIColorYellow)
+	sb.WriteString(Sprint(endpoints))
+	sb.WriteString(ANSIReset)
+	fmt.Print(sb.String())
 }
 
 func GetRouteParams(req *http.Request, param string) (string, bool) {
