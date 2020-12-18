@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
+
+	"github.com/andriiyaremenko/tinyapi/internal"
 )
 
 func NewDefaultTracer(w http.ResponseWriter, getLogger GetLogger) *DefaultTracer {
@@ -20,26 +23,20 @@ type DefaultTracer struct {
 
 func (t *DefaultTracer) Trace(req *http.Request) {
 	code := t.statusCode
-	logger := t.getLogger(req.Context(), "DefaultTracer")
+	logger := t.getLogger(req.Context())
+	color := internal.ANSIColorGreen
 
 	switch {
 	case code >= 400:
-		logger.Errorf("%s %s %s --> %d %s",
-			req.RemoteAddr, req.Method, req.RequestURI,
-			code, http.StatusText(code),
-		)
+		color = internal.ANSIColorRed
 	case code >= 300:
-		logger.Warnf("%s %s %s --> %d %s",
-			req.RemoteAddr, req.Method, req.RequestURI,
-			code, http.StatusText(code),
-		)
-	default:
-		logger.Infof("%s %s %s --> %d %s",
-			req.RemoteAddr, req.Method, req.RequestURI,
-			code, http.StatusText(code),
-		)
+		color = internal.ANSIColorYellow
 	}
 
+	logger.Printf("%s %s %s --> %d %s",
+		req.RemoteAddr, internal.PaintText(color, req.Method), internal.PaintText(color, req.RequestURI),
+		internal.PaintText(color, strconv.Itoa(code)), internal.PaintText(color, http.StatusText(code)),
+	)
 }
 
 func (t *DefaultTracer) WriteHeader(code int) {

@@ -24,12 +24,10 @@ type Endpoint = map[verb]RouteSegment
 type Middleware func(next http.HandlerFunc) http.HandlerFunc
 
 type Logger interface {
-	Infof(format string, v ...interface{})
-	Warnf(format string, v ...interface{})
-	Errorf(format string, v ...interface{})
+	Printf(format string, v ...interface{})
 }
 
-type GetLogger func(ctx context.Context, module string) Logger
+type GetLogger func(ctx context.Context) Logger
 
 type Tracer interface {
 	http.ResponseWriter

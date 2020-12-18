@@ -5,6 +5,18 @@ import (
 	"strings"
 )
 
+const (
+	ANSIReset       string = "\033[0m"
+	ANSIColorRed    string = "\033[31m"
+	ANSIColorGreen  string = "\033[32m"
+	ANSIColorYellow string = "\033[33m"
+)
+
+// Returns text prepended by ANSI color code and appended by ANSI color reset code
+func PaintText(color string, text string) string {
+	return color + text + ANSIReset
+}
+
 func CombinePath(segments ...string) string {
 	var sb strings.Builder
 
