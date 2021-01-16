@@ -34,7 +34,7 @@ func (t *DefaultTracer) Trace(req *http.Request) {
 	}
 
 	logger.Printf("%s %s %s --> %s %s",
-		req.RemoteAddr, internal.PaintText(color, req.Method), internal.PaintText(color, req.RequestURI),
+		req.RemoteAddr, internal.PaintText(color, req.Method), req.RequestURI,
 		internal.PaintText(color, strconv.Itoa(code)), internal.PaintText(color, http.StatusText(code)),
 	)
 }
